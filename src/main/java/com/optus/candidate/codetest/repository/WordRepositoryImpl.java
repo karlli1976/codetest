@@ -26,25 +26,20 @@ public class WordRepositoryImpl implements WordRepository {
    * Return sample text thru classpath resource
    *
    * @return null if sample text file not found
+   * @throws IOException if sample file not exist
    */
   @Override
-  public String getSampleText() {
+  public String getSampleText() throws IOException {
     String rlt = null;
 
-    try {
-      if (null == sampleText) {
-        File resource = new ClassPathResource(sampleFile).getFile();
-        sampleText = new String(Files.readAllBytes(resource.toPath()));
-      }
-
-      rlt = sampleText;
-    } catch (IOException e) {
-      log.error(e.getMessage());
-    }
-    finally {
-      return rlt;
+    if (null == sampleText) {
+      File resource = new ClassPathResource(sampleFile).getFile();
+      sampleText = new String(Files.readAllBytes(resource.toPath()));
     }
 
+    rlt = sampleText;
+
+    return rlt;
   }
 
 

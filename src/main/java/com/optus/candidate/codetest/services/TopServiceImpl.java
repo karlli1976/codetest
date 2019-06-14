@@ -7,7 +7,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class TopServiceImpl implements TopService {
@@ -44,71 +48,42 @@ public class TopServiceImpl implements TopService {
 
     StringBuffer rlt = new StringBuffer();
 
+    ConcurrentMap<String, Integer> wordPool = null;
+    try {
+      // perform word count statistic
+      wordPool = Stream.of(
+        wordRepo
+          .getSampleText()
+          .toUpperCase()
+          .split("\\W+"))
+        .collect(
+          Collectors.toConcurrentMap(x -> x, x -> 1, Integer::sum));
 
-    // init words
-    if (null == words) {
-      String sampleText = wordRepo.getSampleText();
+      // sort word pool by value with limit
+      wordPool
+        .entrySet()
+        .stream()
+        .sorted(
+          Map.Entry.<String, Integer>comparingByValue().reversed())
+        .limit(topCount)
+        .forEachOrdered(
+          x -> rlt.append(
+            String.format("%s|%d\n",
+              x.getKey(),
+              x.getValue())
+          ));
+    } catch (IOException ioe){
+      log.error(ioe.getMessage());
+      log.debug("end: result[null]");
 
-      if (null == sampleText || sampleText.trim().isEmpty()) {
-        // confirm sample text is valid
-        log.error("sample text not found or empty");
-        log.debug("end: result[null]");
-
-        return null;
-      }
-
-      // case-insensitive
-      sampleText = sampleText.trim().toUpperCase();
-      Vector<String> vecWords = new Vector<>();
-      Set<String> set = new HashSet<>();
-
-      for (String w: sampleText.split("\\s+")) {
-        if (null == w || w.trim().isEmpty()) {
-          continue;
-        }
-
-        // remove non-alphanumeric char
-        w = w.trim().replaceAll("[^A-Za-z0-9]", "");
-        vecWords.add(w);
-        set.add(w);
-      }
-
-      words = vecWords.toArray(new String[vecWords.size()]);
-
-      // remove duplicated words
-      noDupWords = set.toArray(new String[set.size()]);
+      return null;
     }
-
-    Map<String, Integer> wordPool = new HashMap<>();
-    for (String word : noDupWords) {
-      if (!wordPool.containsKey(word)) {
-        TopWord topWord = countOccurrence(word);
-
-        if (topWord != null) {
-          wordPool.put(word, topWord.getOccurrence());
-        } else {
-          log.error("word[{}] not found in sample file", word);
-        }
-      }
-    }
-
-
-    // sort word pool by value with limit
-    wordPool.entrySet().stream()
-      .sorted(
-        Map.Entry.<String, Integer>comparingByValue().reversed())
-      .limit(topCount)
-      .forEachOrdered(
-        x -> rlt.append(
-          String.format("%s|%d\n",
-            x.getKey(),
-            x.getValue())
-        ));
 
     log.debug("end: result[{}]", rlt.toString());
 
     return rlt.toString();
   }
+
 
   /**
    * Return TopWord object to indicate word-occurrence (case-sensitive) in sample text.

@@ -11,8 +11,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -28,9 +27,22 @@ class TopServiceImplTest {
 
   @Test
   void getTop_withValidParam_isOK() {
-    int top = 5;
-    assertNotNull(topService.getTop(top));
+    int top = 10;
+    String expectedStr =
+      "VEL|17\n" +
+      "EGET|17\n" +
+      "SED|16\n" +
+      "IN|15\n" +
+      "ET|14\n" +
+      "UT|13\n" +
+      "EU|13\n" +
+      "METUS|12\n" +
+      "ID|12\n" +
+      "AC|12\n";
+    
+    assertEquals(expectedStr, topService.getTop(top));
   }
+
 
   @Test
   void getTop_withNegativeParam_isFail() {
@@ -60,10 +72,10 @@ class TopServiceImplTest {
   }
 
   @Test
-  void getTop_withBlankSampleText_isFail() {
+  void getTop_withBlankSampleText_isOK() {
     int top = 5;
 
     ReflectionTestUtils.setField((WordRepositoryImpl) wordRepo, "sampleText", "   ");
-    assertNull(topService.getTop(top));
+    assertEquals("", topService.getTop(top));
   }
 }
